@@ -1,5 +1,5 @@
-import { defineRouteConfig } from "@medusajs/admin-sdk"
-import { CurrencyDollarSolid } from "@medusajs/icons"
+import { defineRouteConfig } from "@medusajs/admin-sdk";
+import { CurrencyDollarSolid } from "@medusajs/icons";
 import {
   Container,
   createDataTableColumnHelper,
@@ -12,29 +12,34 @@ import {
   Switch,
   Button,
   toast,
-} from "@medusajs/ui"
-import { useState, useEffect } from "react"
+} from "@medusajs/ui";
+import { useState, useEffect } from "react";
 import {
   useCurrencyExchangeSettings,
   useEnableCurrencyExchangeSetting,
   useDisableCurrencyExchangeSetting,
   useUpdateCurrencyExchangeSetting,
   useTriggerCurrencyUpdate,
-} from "../../hooks/currency-exchange"
-import { AdminCurrencyExchangeSetting, ExchangeRateMode, ExchangeRateStatus } from "../../types/currency-exchange"
+} from "../../hooks/currency-exchange";
+import {
+  AdminCurrencyExchangeSetting,
+  ExchangeRateMode,
+  ExchangeRateStatus,
+} from "../../types/currency-exchange";
 
 export const config = defineRouteConfig({
   label: "Currency Exchange",
   icon: CurrencyDollarSolid,
-})
+});
 
-const columnHelper = createDataTableColumnHelper<AdminCurrencyExchangeSetting>()
+const columnHelper =
+  createDataTableColumnHelper<AdminCurrencyExchangeSetting>();
 
 export default function CurrencyExchangeSettingsPage() {
   const [pagination, setPagination] = useState<DataTablePaginationState>({
     pageSize: 15,
     pageIndex: 0,
-  })
+  });
 
   const {
     settings = [],
@@ -45,26 +50,26 @@ export default function CurrencyExchangeSettingsPage() {
     limit: pagination.pageSize,
     offset: pagination.pageIndex * pagination.pageSize,
     order: "-created_at",
-  })
+  });
 
-  const enableMutation = useEnableCurrencyExchangeSetting()
-  const disableMutation = useDisableCurrencyExchangeSetting()
-  const updateMutation = useUpdateCurrencyExchangeSetting()
-  const triggerUpdateMutation = useTriggerCurrencyUpdate()
+  const enableMutation = useEnableCurrencyExchangeSetting();
+  const disableMutation = useDisableCurrencyExchangeSetting();
+  const updateMutation = useUpdateCurrencyExchangeSetting();
+  const triggerUpdateMutation = useTriggerCurrencyUpdate();
 
-  const [editRate, setEditRate] = useState<{ [id: string]: string }>({})
+  const [editRate, setEditRate] = useState<{ [id: string]: string }>({});
 
-  // Auto-sync editRate với rate mới nhất khi reload/refetch data
+  // Auto-sync editRate with the latest rate when reloading/refetching data
   useEffect(() => {
-    if (!settings) return
-    const nextEditRate: { [id: string]: string } = {}
-    settings.forEach(s => {
+    if (!settings) return;
+    const nextEditRate: { [id: string]: string } = {};
+    settings.forEach((s) => {
       if (s.id && s.mode === ExchangeRateMode.MANUAL) {
-        nextEditRate[s.id] = ""
+        nextEditRate[s.id] = "";
       }
-    })
-    setEditRate(nextEditRate)
-  }, [settings])
+    });
+    setEditRate(nextEditRate);
+  }, [settings]);
 
   const columns = [
     columnHelper.accessor("currency_code", {
@@ -74,23 +79,23 @@ export default function CurrencyExchangeSettingsPage() {
     columnHelper.accessor("status", {
       header: "Status",
       cell: ({ getValue }) => {
-        const value = getValue()
+        const value = getValue();
         return (
           <Badge color={value === "enable" ? "green" : "blue"}>
             {value === "enable" ? "Enabled" : "Disabled"}
           </Badge>
-        )
+        );
       },
     }),
     columnHelper.accessor("mode", {
       header: "Mode",
       cell: ({ getValue }) => {
-        const value = getValue()
+        const value = getValue();
         return (
           <Badge color={value === "manual" ? "orange" : "green"}>
             {value === "manual" ? "Manual" : "Auto"}
           </Badge>
-        )
+        );
       },
     }),
     columnHelper.accessor("exchange_rate", {
@@ -101,59 +106,73 @@ export default function CurrencyExchangeSettingsPage() {
       id: "action",
       header: "Action",
       cell: ({ row }) => {
-        const setting = row.original
+        const setting = row.original;
         return (
           <Switch
             checked={setting.status === "enable"}
-            onCheckedChange={checked => {
+            onCheckedChange={(checked) => {
               if (checked) {
                 enableMutation.mutate(
                   { currency_code: setting.currency_code },
                   {
-                    onError: (e: any) => toast.error("Enable failed", { description: e?.message }),
+                    onError: (e: any) =>
+                      toast.error("Enable failed", { description: e?.message }),
                     onSuccess: () => toast.success("Enabled!"),
                   }
-                )
+                );
               } else if (setting.id) {
-                // Gọi PATCH để update status: "disable"
+                // Call PATCH to update status: "disable"
                 disableMutation.mutate(
-                  { id: setting.id, status:  ExchangeRateStatus.DISABLE },
+                  { id: setting.id, status: ExchangeRateStatus.DISABLE },
                   {
-                    onError: (e: any) => toast.error("Disable failed", { description: e?.message }),
+                    onError: (e: any) =>
+                      toast.error("Disable failed", {
+                        description: e?.message,
+                      }),
                     onSuccess: () => toast.success("Disabled!"),
                   }
-                )
+                );
               }
             }}
             aria-label={`Enable/disable exchange for ${setting.currency_code}`}
             disabled={enableMutation.isPending || disableMutation.isPending}
           />
-          
-        )
+        );
       },
     }),
     columnHelper.display({
       id: "config",
       header: "Config",
       cell: ({ row }) => {
-        const setting = row.original
+        const setting = row.original;
 
-        if (setting.status !== "enable") return null
+        if (setting.status !== "enable") return null;
 
         return (
           <div className="flex items-center gap-2">
             <Switch
               checked={setting.mode === "manual"}
-              onCheckedChange={checked => {
+              onCheckedChange={(checked) => {
                 updateMutation.mutate(
-                  { id: setting.id!, mode: checked ? ExchangeRateMode.MANUAL : ExchangeRateMode.AUTO },
                   {
-                    onSuccess: () => toast.success(`Switched to ${checked ? "manual" : "auto"} mode!`),
-                    onError: (e: any) => toast.error("Switch failed", { description: e?.message }),
+                    id: setting.id!,
+                    mode: checked
+                      ? ExchangeRateMode.MANUAL
+                      : ExchangeRateMode.AUTO,
+                  },
+                  {
+                    onSuccess: () =>
+                      toast.success(
+                        `Switched to ${checked ? "manual" : "auto"} mode!`
+                      ),
+                    onError: (e: any) =>
+                      toast.error("Switch failed", { description: e?.message }),
                   }
-                )
+                );
               }}
-              aria-label={`Switch to ${setting.mode === "manual" ? "Auto" : "Manual"} mode`}
+              aria-label={`Switch to ${
+                setting.mode === "manual" ? "Auto" : "Manual"
+              } mode`}
               disabled={updateMutation.isPending}
             />
             <span className="text-xs text-gray-500">
@@ -169,8 +188,8 @@ export default function CurrencyExchangeSettingsPage() {
                       ? editRate[setting.id!]
                       : String(setting.exchange_rate ?? "")
                   }
-                  onChange={e =>
-                    setEditRate(r => ({
+                  onChange={(e) =>
+                    setEditRate((r) => ({
                       ...r,
                       [setting.id!]: e.target.value,
                     }))
@@ -190,12 +209,12 @@ export default function CurrencyExchangeSettingsPage() {
                       },
                       {
                         onSuccess: () => {
-                          toast.success("Updated rate!")
-                          // Clear only if đã đổi
-                          setEditRate(r => ({
+                          toast.success("Updated rate!");
+                          // Clear only if changed
+                          setEditRate((r) => ({
                             ...r,
                             [setting.id!]: "",
-                          }))
+                          }));
                         },
                         onError: (e: any) =>
                           toast.error("Update failed", {
@@ -209,13 +228,15 @@ export default function CurrencyExchangeSettingsPage() {
                 </Button>
               </>
             ) : (
-              <span className="text-xs text-gray-700">Rate: {setting.exchange_rate}</span>
+              <span className="text-xs text-gray-700">
+                Rate: {setting.exchange_rate}
+              </span>
             )}
           </div>
-        )
+        );
       },
     }),
-  ]
+  ];
 
   const table = useDataTable({
     columns,
@@ -227,10 +248,13 @@ export default function CurrencyExchangeSettingsPage() {
       state: pagination,
       onPaginationChange: setPagination,
     },
-  })
+  });
 
-  if (isLoading) return <div>Loading…</div>
-  if (error) return <div>Error loading data: {error.message || JSON.stringify(error)}</div>
+  if (isLoading) return <div>Loading…</div>;
+  if (error)
+    return (
+      <div>Error loading data: {error.message || JSON.stringify(error)}</div>
+    );
 
   return (
     <>
@@ -242,25 +266,32 @@ export default function CurrencyExchangeSettingsPage() {
             disabled={triggerUpdateMutation.isPending}
             onClick={() =>
               triggerUpdateMutation.mutate(undefined, {
-                onSuccess: () => toast.success("Update prices with exchange rate sucessfully!"),
-                onError: (e: any) => toast.error("Error while update prices!", { description: e?.message }),
+                onSuccess: () =>
+                  toast.success(
+                    "Update prices with exchange rate sucessfully!"
+                  ),
+                onError: (e: any) =>
+                  toast.error("Error while update prices!", {
+                    description: e?.message,
+                  }),
               })
             }
           >
-            {triggerUpdateMutation.isPending ? "Updating..." : "Update Prices Now"}
+            {triggerUpdateMutation.isPending
+              ? "Updating..."
+              : "Update Prices Now"}
           </Button>
         </Heading>
-        
+
         <div className="">
-          
           <DataTable instance={table}>
             <DataTable.Table />
             <DataTable.Pagination />
           </DataTable>
         </div>
       </Container>
-      
+
       <Toaster />
     </>
-  )
+  );
 }
